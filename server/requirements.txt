@@ -1,0 +1,6 @@
+Flask
+Flask-Cors
+psycopg2-binary
+python-dotenv
+gunicorn
+Werkzeug

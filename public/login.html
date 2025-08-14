@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanSmart – Controle Financeiro Inteligente</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .modal-overlay { transition: opacity 0.3s ease; }
+        .modal-content { transition: transform 0.3s ease; }
+        .gemini-content h3 { font-weight: 600; margin-top: 1rem; margin-bottom: 0.5rem; }
+        .gemini-content ul { list-style-type: disc; padding-left: 1.5rem; }
+        .gemini-content li { margin-bottom: 0.25rem; }
+        .gemini-content p { margin-bottom: 0.5rem; }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #0ea5e9;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <!-- Tela de Login -->
+    <div id="login-screen" class="hidden min-h-screen flex items-center justify-center px-4">
+        <div class="w-full max-w-md">
+            <div class="text-center mb-8">
+                <a href="#" class="flex items-center justify-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-sky-500"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    <span class="text-2xl font-bold text-slate-800">Finan<span class="text-sky-500">Smart</span></span>
+                </a>
+                <p class="text-slate-500 mt-2">Controle financeiro inteligente.</p>
+            </div>
+            <div class="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
+                <h2 class="text-2xl font-bold text-center text-slate-800 mb-6">Acesse sua conta</h2>
+                <form id="login-form" class="space-y-6">
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                        <input type="email" id="email" name="email" class="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500" required>
+                    </div>
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-slate-700 mb-1">Senha</label>
+                        <input type="password" id="password" name="password" class="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500" required>
+                    </div>
+                    <div id="login-feedback" class="text-center text-sm font-medium text-red-600 h-4"></div>
+                    <div>
+                        <button type="submit" class="w-full px-4 py-2.5 bg-sky-500 text-white font-semibold rounded-md hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500">Entrar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container do Dashboard -->
+    <div id="app-container" class="hidden min-h-screen bg-slate-50">
+        <!-- Cabeçalho Principal -->
+        <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-40 border-b border-slate-200">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <a href="#" class="flex items-center space-x-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-sky-500"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        <span class="text-xl font-bold text-slate-800">Finan<span class="text-sky-500">Smart</span></span>
+                    </a>
+                    <div class="flex items-center gap-2 sm:gap-4">
+                         <input type="month" id="filtro-mes" class="bg-slate-100 border-slate-200 rounded-md px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-sky-500 focus:outline-none w-36 sm:w-auto">
+                        <button id="novo-lancamento-btn" class="bg-sky-500 text-white font-semibold px-3 py-2 rounded-lg shadow-sm hover:bg-sky-600 flex items-center gap-2">
+                            <i data-lucide="plus" class="w-5 h-5"></i>
+                            <span class="hidden sm:inline">Novo Lançamento</span>
+                        </button>
+                        <div class="relative">
+                            <button id="user-menu-button" class="flex items-center gap-2 rounded-full hover:bg-slate-100 p-1">
+                                <img id="user-photo" src="https://placehold.co/40x40/E0F2FE/3B82F6?text=U" class="w-8 h-8 rounded-full object-cover" alt="Foto do usuário">
+                                <span id="user-name" class="hidden sm:inline text-sm font-semibold text-slate-700">Usuário</span>
+                                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-500 hidden sm:inline"></i>
+                            </button>
+                            <div id="user-menu-dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden">
+                                <a href="#" id="edit-profile-btn" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                                    <i data-lucide="user-cog" class="w-4 h-4"></i>
+                                    Alterar Perfil
+                                </a>
+                                <a href="#" id="logout-btn" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                                    Sair
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Conteúdo Principal -->
+        <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 class="text-base font-semibold text-slate-500">Saldo do Mês</h3>
+                    <p id="saldo-atual" class="text-3xl font-bold mt-2">R$ 0,00</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 class="text-base font-semibold text-slate-500">Receitas do Mês</h3>
+                    <p id="total-receitas" class="text-3xl font-bold mt-2">R$ 0,00</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 class="text-base font-semibold text-slate-500">Despesas do Mês</h3>
+                    <p id="total-despesas" class="text-3xl font-bold mt-2">R$ 0,00</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div class="lg:col-span-3 space-y-6">
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <h3 class="text-lg font-semibold mb-4">Lançamentos do Mês</h3>
+                        <div id="lista-lancamentos" class="space-y-4">
+                           <p class="text-slate-500 text-center py-8">Nenhum lançamento no período.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
+                            <h3 class="text-lg font-semibold">✨ Análise Inteligente</h3>
+                            <button id="gerar-analise-btn" class="bg-sky-100 text-sky-700 font-semibold px-4 py-2 rounded-lg hover:bg-sky-200 flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"><i data-lucide="sparkles" class="w-4 h-4"></i><span>Gerar Análise com IA</span></button>
+                        </div>
+                        <div id="analise-ia-content" class="text-slate-600">
+                            <p class="text-center text-slate-500 py-8">Filtre um mês e adicione lançamentos para gerar uma análise.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 class="text-lg font-semibold mb-4">Despesas por Categoria</h3>
+                    <div class="h-80 flex items-center justify-center mt-6">
+                        <canvas id="despesasChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-lancamento" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-overlay">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md modal-content transform scale-95">
+            <div class="flex justify-between items-center p-4 border-b border-slate-200">
+                <h2 id="modal-titulo" class="text-xl font-semibold">Novo Lançamento</h2>
+                <button class="fechar-modal-btn text-slate-500 hover:text-slate-800"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <form id="form-lancamento" class="p-6 space-y-4">
+                <input type="hidden" id="lancamento-id" name="lancamento-id">
+                <div>
+                    <label for="descricao" class="block text-sm font-medium text-slate-700 mb-1">Descrição</label>
+                    <input type="text" id="descricao" name="descricao" class="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500" required>
+                </div>
+                <div>
+                    <label for="valor" class="block text-sm font-medium text-slate-700 mb-1">Valor</label>
+                    <input type="number" id="valor" name="valor" step="0.01" min="0" class="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500" required>
+                </div>
+                <div>
+                    <label for="data" class="block text-sm font-medium text-slate-700 mb-1">Data</label>
+                    <input type="date" id="data" name="data" class="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500" required>
+                </div>
+                <div>
+                    <label for="tipo" class="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
+                    <select id="tipo" name="tipo" class="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                        <option value="receita">Receita</option>
+                        <option value="despesa">Despesa</option>
+                    </select>
+                </div>
+                <div id="campo-categoria">
+                    <label for="categoria" class="block text-sm font-medium text-slate-700 mb-1">Categoria</label>
+                    <select id="categoria" name="categoria" class="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                        <option>Moradia</option><option>Transporte</option><option>Alimentação</option><option>Lazer</option><option>Saúde</option><option>Outros</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-4 pt-4">
+                    <button type="button" class="cancelar-btn px-4 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-sky-500 text-white font-semibold rounded-md hover:bg-sky-600">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="modal-confirmacao" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-overlay">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm modal-content transform scale-95">
+             <div class="p-6 text-center">
+                <i data-lucide="alert-triangle" class="w-16 h-16 text-yellow-500 mx-auto mb-4"></i>
+                <h3 class="text-lg font-semibold text-slate-800 mb-2">Você tem certeza?</h3>
+                <p class="text-sm text-slate-500 mb-6">Esta ação não pode ser desfeita. O lançamento será excluído permanentemente.</p>
+                <div class="flex justify-center gap-4">
+                    <button id="cancelar-exclusao-btn" class="px-6 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200">Cancelar</button>
+                    <button id="confirmar-exclusao-btn" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">Excluir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="modal-perfil" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-overlay">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md modal-content transform scale-95">
+            <div class="flex justify-between items-center p-4 border-b border-slate-200">
+                <h2 class="text-xl font-semibold">Alterar Perfil</h2>
+                <button class="fechar-modal-btn text-slate-500 hover:text-slate-800"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <form id="form-perfil" class="p-6 space-y-4">
+                <div>
+                    <label for="perfil-nome" class="block text-sm font-medium text-slate-700 mb-1">Nome</label>
+                    <input type="text" id="perfil-nome" name="perfil-nome" class="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Foto de Perfil</label>
+                    <div class="mt-2 flex items-center gap-4">
+                        <img id="perfil-preview" src="https://placehold.co/80x80/E0F2FE/3B82F6?text=U" class="w-20 h-20 rounded-full object-cover" alt="Pré-visualização">
+                        <input type="file" id="perfil-foto-upload" name="perfil-foto-upload" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100" accept="image/*">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-4 pt-4">
+                    <button type="button" class="cancelar-btn px-4 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-sky-500 text-white font-semibold rounded-md hover:bg-sky-600">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        const loginScreen = document.getElementById('login-screen');
+        const appContainer = document.getElementById('app-container');
+        const loginForm = document.getElementById('login-form');
+        const loginFeedback = document.getElementById('login-feedback');
+
+        const showLogin = () => {
+            loginScreen.classList.remove('hidden');
+            appContainer.classList.add('hidden');
+        };
+
+        const showDashboard = () => {
+            loginScreen.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+            initializeDashboard();
+        };
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginFeedback.textContent = '';
+            const email = loginForm.email.value;
+            const password = loginForm.password.value;
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    localStorage.setItem('finansmart_user', JSON.stringify(result.user));
+                    showDashboard();
+                } else {
+                    loginFeedback.textContent = result.error || 'Ocorreu um erro.';
+                }
+            } catch (error) {
+                console.error('Erro de conexão:', error);
+                loginFeedback.textContent = 'Não foi possível conectar ao servidor. Verifique se o backend está em execução.';
+            }
+        });
+
+        if (!localStorage.getItem('finansmart_user')) {
+            showLogin();
+        } else {
+            showDashboard();
+        }
+
+        function initializeDashboard() {
+            lucide.createIcons();
+
+            const state = {
+                user: JSON.parse(localStorage.getItem('finansmart_user')) || { name: 'Usuário', photo: '' },
+                lancamentos: JSON.parse(localStorage.getItem('finansmart_lancamentos')) || [],
+                filtroMes: '',
+                editingId: null,
+                deletingId: null,
+            };
+
+            const filtroMesEl = document.getElementById('filtro-mes');
+            const saldoEl = document.getElementById('saldo-atual');
+            const receitasEl = document.getElementById('total-receitas');
+            const despesasEl = document.getElementById('total-despesas');
+            const listaLancamentosEl = document.getElementById('lista-lancamentos');
+            const userMenuButton = document.getElementById('user-menu-button');
+            const userMenuDropdown = document.getElementById('user-menu-dropdown');
+            const userPhotoEl = document.getElementById('user-photo');
+            const userNameEl = document.getElementById('user-name');
+            const modalLancamento = document.getElementById('modal-lancamento');
+            const modalConfirmacao = document.getElementById('modal-confirmacao');
+            const modalPerfil = document.getElementById('modal-perfil');
+            const formLancamento = document.getElementById('form-lancamento');
+            const modalTitulo = document.getElementById('modal-titulo');
+            const lancamentoIdInput = document.getElementById('lancamento-id');
+            const formPerfil = document.getElementById('form-perfil');
+            const gerarAnaliseBtn = document.getElementById('gerar-analise-btn');
+            const analiseIaContent = document.getElementById('analise-ia-content');
+            const ctx = document.getElementById('despesasChart').getContext('2d');
+            let despesasChart;
+            const perfilPreview = document.getElementById('perfil-preview');
+            const perfilFotoUpload = document.getElementById('perfil-foto-upload');
+            let newPhotoBase64 = null;
+
+            const formatarMoeda = (valor) => valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            const hoje = new Date();
+            const hojeString = hoje.toISOString().split('T')[0];
+            const mesAtualString = hoje.toISOString().slice(0, 7);
+
+            const abrirModal = (modal) => {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    modal.querySelector('.modal-content').classList.remove('scale-95');
+                }, 10);
+            };
+
+            const fecharModal = (modal) => {
+                modal.classList.add('opacity-0');
+                modal.querySelector('.modal-content').classList.add('scale-95');
+                setTimeout(() => modal.classList.add('hidden'), 300);
+            };
+            
+            const saveUserToLocalStorage = () => localStorage.setItem('finansmart_user', JSON.stringify(state.user));
+            const saveLancamentosToLocalStorage = () => localStorage.setItem('finansmart_lancamentos', JSON.stringify(state.lancamentos));
+
+            const updateUserProfileHeader = () => {
+                userNameEl.textContent = state.user.name;
+                userPhotoEl.src = state.user.photo || `https://placehold.co/40x40/E0F2FE/3B82F6?text=${state.user.name.charAt(0)}`;
+                userPhotoEl.onerror = () => { userPhotoEl.src = `https://placehold.co/40x40/E0F2FE/3B82F6?text=${state.user.name.charAt(0)}`; };
+            };
+
+            const atualizarUI = () => {
+                const lancamentosFiltrados = state.lancamentos.filter(l => l.data.startsWith(state.filtroMes));
+                const receitas = lancamentosFiltrados.filter(l => l.tipo === 'receita').reduce((acc, l) => acc + l.valor, 0);
+                const despesas = lancamentosFiltrados.filter(l => l.tipo === 'despesa').reduce((acc, l) => acc + l.valor, 0);
+                
+                saldoEl.textContent = formatarMoeda(receitas - despesas);
+                receitasEl.textContent = formatarMoeda(receitas);
+                despesasEl.textContent = formatarMoeda(despesas);
+
+                listaLancamentosEl.innerHTML = '';
+                if (lancamentosFiltrados.length === 0) {
+                    listaLancamentosEl.innerHTML = `<p class="text-slate-500 text-center py-8">Nenhum lançamento no período.</p>`;
+                } else {
+                    lancamentosFiltrados.sort((a, b) => new Date(b.data) - new Date(a.data)).forEach(l => {
+                        const isReceita = l.tipo === 'receita';
+                        const el = document.createElement('div');
+                        el.className = 'flex items-center gap-4';
+                        el.innerHTML = `
+                            <div class="${isReceita ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'} rounded-full h-10 w-10 flex items-center justify-center flex-shrink-0"><i data-lucide="${isReceita ? 'trending-up' : 'trending-down'}"></i></div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-semibold truncate">${l.descricao}</p>
+                                <p class="text-sm text-slate-500">${l.categoria || new Date(l.data + 'T00:00:00-03:00').toLocaleDateString('pt-BR')}</p>
+                            </div>
+                            <p class="font-semibold ${isReceita ? 'text-green-600' : 'text-red-600'} ml-auto">${isReceita ? '+' : '-'} ${formatarMoeda(l.valor)}</p>
+                            <div class="flex gap-1">
+                                <button class="edit-btn text-slate-400 hover:text-sky-500 p-1" data-id="${l.id}"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                <button class="delete-btn text-slate-400 hover:text-red-500 p-1" data-id="${l.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            </div>`;
+                        listaLancamentosEl.appendChild(el);
+                    });
+                }
+                atualizarGrafico();
+                lucide.createIcons();
+            };
+
+            const inicializarGrafico = () => {
+                despesasChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [],
+                        datasets: [{ data: [], backgroundColor: ['#38bdf8', '#fb923c', '#f87171', '#a78bfa', '#34d399', '#fbbf24'], borderColor: '#f8fafc', borderWidth: 4 }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: true, position: 'right' }, tooltip: { callbacks: { label: (c) => `${c.label}: ${formatarMoeda(c.parsed)}` } } },
+                        cutout: '60%'
+                    }
+                });
+            };
+
+            const atualizarGrafico = () => {
+                const despesasPorCategoria = state.lancamentos.filter(l => l.data.startsWith(state.filtroMes) && l.tipo === 'despesa')
+                    .reduce((acc, l) => { acc[l.categoria] = (acc[l.categoria] || 0) + l.valor; return acc; }, {});
+                const labels = Object.keys(despesasPorCategoria);
+                const data = Object.values(despesasPorCategoria);
+                if (labels.length === 0) {
+                    despesasChart.data.labels = ['Sem despesas'];
+                    despesasChart.data.datasets[0].data = [1];
+                    despesasChart.data.datasets[0].backgroundColor = ['#e2e8f0'];
+                } else {
+                    despesasChart.data.labels = labels;
+                    despesasChart.data.datasets[0].data = data;
+                    despesasChart.data.datasets[0].backgroundColor = ['#38bdf8', '#fb923c', '#f87171', '#a78bfa', '#34d399', '#fbbf24'];
+                }
+                despesasChart.update();
+            };
+
+            const handleFormSubmit = (e) => {
+                e.preventDefault();
+                const formData = new FormData(formLancamento);
+                const id = formData.get('lancamento-id');
+                const lancamentoData = {
+                    id: id || crypto.randomUUID(),
+                    descricao: formData.get('descricao'), valor: parseFloat(formData.get('valor')), data: formData.get('data'),
+                    tipo: formData.get('tipo'), categoria: formData.get('tipo') === 'despesa' ? formData.get('categoria') : null,
+                };
+                if (id) {
+                    const index = state.lancamentos.findIndex(l => l.id === id);
+                    if (index !== -1) state.lancamentos[index] = lancamentoData;
+                } else {
+                    state.lancamentos.push(lancamentoData);
+                }
+                saveLancamentosToLocalStorage();
+                state.editingId = null;
+                fecharModal(modalLancamento);
+                atualizarUI();
+            };
+
+            const deletarLancamento = (id) => {
+                state.lancamentos = state.lancamentos.filter(l => l.id !== id);
+                saveLancamentosToLocalStorage();
+                state.deletingId = null;
+                fecharModal(modalConfirmacao);
+                atualizarUI();
+            };
+
+            const abrirFormularioEdicao = (id) => {
+                const lancamento = state.lancamentos.find(l => l.id === id);
+                if (!lancamento) return;
+                state.editingId = id;
+                modalTitulo.textContent = 'Editar Lançamento';
+                lancamentoIdInput.value = id;
+                formLancamento.elements.descricao.value = lancamento.descricao;
+                formLancamento.elements.valor.value = lancamento.valor;
+                formLancamento.elements.data.value = lancamento.data;
+                formLancamento.elements.tipo.value = lancamento.tipo;
+                formLancamento.elements.categoria.value = lancamento.categoria || 'Moradia';
+                formLancamento.elements.tipo.dispatchEvent(new Event('change'));
+                abrirModal(modalLancamento);
+            };
+
+            const handleGerarAnalise = async () => {
+                gerarAnaliseBtn.disabled = true;
+                analiseIaContent.innerHTML = `<div class="flex flex-col items-center justify-center py-8"><div class="spinner"></div><p class="mt-4 text-slate-500">Analisando seus dados...</p></div>`;
+
+                const lancamentosFiltrados = state.lancamentos.filter(l => l.data.startsWith(state.filtroMes));
+                if(lancamentosFiltrados.length === 0){
+                    analiseIaContent.innerHTML = `<p class="text-center text-slate-500 py-8">Adicione lançamentos neste mês para gerar uma análise.</p>`;
+                    gerarAnaliseBtn.disabled = false;
+                    return;
+                }
+
+                const receitas = lancamentosFiltrados.filter(l => l.tipo === 'receita').reduce((acc, l) => acc + l.valor, 0);
+                const despesas = lancamentosFiltrados.filter(l => l.tipo === 'despesa').reduce((acc, l) => acc + l.valor, 0);
+                const despesasPorCategoria = lancamentosFiltrados.filter(l => l.tipo === 'despesa').reduce((acc, l) => {
+                    acc[l.categoria] = (acc[l.categoria] || 0) + l.valor;
+                    return acc;
+                }, {});
+
+                const despesasFormatadas = Object.entries(despesasPorCategoria).map(([cat, val]) => `- ${cat}: ${formatarMoeda(val)}`).join('\n');
+
+                const prompt = `Você é um consultor financeiro amigável chamado FinanSmart. Analise os seguintes dados financeiros de um usuário para o mês de ${state.filtroMes} e crie um plano de ação simples em português do Brasil. **Dados Financeiros:** - Total de Receitas: ${formatarMoeda(receitas)} - Total de Despesas: ${formatarMoeda(despesas)} - Saldo do Mês: ${formatarMoeda(receitas - despesas)} - Despesas por Categoria: ${despesasFormatadas || 'Nenhuma despesa registrada.'} **Sua Tarefa (responda em Markdown):** 1. **Balanço do Mês:** Comece com uma frase curta e motivadora sobre o balanço. 2. **Plano Sugerido:** Crie um pequeno plano com 2 ou 3 pontos de ação claros. Baseie uma dica na categoria de maior gasto. 3. **Próximo Passo:** Finalize com uma pergunta ou sugestão para incentivar o usuário. Seja breve, positivo e direto ao ponto.`;
+
+                try {
+                    let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                    const payload = { contents: chatHistory };
+                    const apiKey = "AIzaSyAZ6JEgAgM8uEatbQFviCY-GiVY8Yw1SBU";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!response.ok) throw new Error(`Erro na API: ${response.statusText}`);
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        analiseIaContent.innerHTML = `<div class="gemini-content">${marked.parse(text)}</div>`;
+                    } else { throw new Error("Resposta da IA inválida."); }
+                } catch (error) {
+                    console.error("Erro ao chamar a API Gemini:", error);
+                    analiseIaContent.innerHTML = `<p class="text-red-500 text-center py-8">Ocorreu um erro ao gerar a análise. Tente novamente.</p>`;
+                } finally {
+                    gerarAnaliseBtn.disabled = false;
+                }
+            };
+
+            filtroMesEl.addEventListener('change', (e) => { state.filtroMes = e.target.value; atualizarUI(); });
+            
+            document.getElementById('novo-lancamento-btn').addEventListener('click', () => {
+                state.editingId = null;
+                modalTitulo.textContent = 'Novo Lançamento';
+                formLancamento.reset();
+                lancamentoIdInput.value = '';
+                formLancamento.elements.data.value = hojeString;
+                abrirModal(modalLancamento);
+            });
+            
+            formLancamento.addEventListener('submit', handleFormSubmit);
+            
+            listaLancamentosEl.addEventListener('click', (e) => {
+                const editBtn = e.target.closest('.edit-btn');
+                const deleteBtn = e.target.closest('.delete-btn');
+                if (editBtn) abrirFormularioEdicao(editBtn.dataset.id);
+                if (deleteBtn) {
+                    state.deletingId = deleteBtn.dataset.id;
+                    abrirModal(modalConfirmacao);
+                }
+            });
+            
+            document.getElementById('confirmar-exclusao-btn').addEventListener('click', () => deletarLancamento(state.deletingId));
+            gerarAnaliseBtn.addEventListener('click', handleGerarAnalise);
+            userMenuButton.addEventListener('click', () => userMenuDropdown.classList.toggle('hidden'));
+            document.addEventListener('click', (e) => { if (!userMenuButton.contains(e.target) && !userMenuDropdown.contains(e.target)) userMenuDropdown.classList.add('hidden'); });
+            
+            document.getElementById('logout-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                localStorage.removeItem('finansmart_user');
+                localStorage.removeItem('finansmart_lancamentos');
+                showLogin();
+            });
+            
+            document.getElementById('edit-profile-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                formPerfil.elements['perfil-nome'].value = state.user.name;
+                perfilPreview.src = state.user.photo || `https://placehold.co/80x80/E0F2FE/3B82F6?text=${state.user.name.charAt(0)}`;
+                newPhotoBase64 = null;
+                perfilFotoUpload.value = '';
+                abrirModal(modalPerfil);
+                userMenuDropdown.classList.add('hidden');
+            });
+            
+            perfilFotoUpload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        newPhotoBase64 = event.target.result;
+                        perfilPreview.src = newPhotoBase64;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            formPerfil.addEventListener('submit', (e) => {
+                e.preventDefault();
+                state.user.name = formPerfil.elements['perfil-nome'].value;
+                if (newPhotoBase64) {
+                    state.user.photo = newPhotoBase64;
+                }
+                saveUserToLocalStorage();
+                updateUserProfileHeader();
+                fecharModal(modalPerfil);
+            });
+            
+            document.querySelectorAll('.fechar-modal-btn, .cancelar-btn, #cancelar-exclusao-btn').forEach(btn => btn.addEventListener('click', () => { fecharModal(modalLancamento); fecharModal(modalConfirmacao); fecharModal(modalPerfil); }));
+            document.querySelectorAll('.modal-overlay').forEach(overlay => overlay.addEventListener('click', (e) => { if (e.target === overlay) fecharModal(overlay); }));
+
+            const init = () => {
+                updateUserProfileHeader();
+                filtroMesEl.value = mesAtualString;
+                state.filtroMes = mesAtualString;
+                inicializarGrafico();
+                atualizarUI();
+            };
+
+            init();
+        }
+    </script>
+</body>
+</html>
